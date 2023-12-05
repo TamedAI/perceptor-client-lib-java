@@ -24,7 +24,7 @@ jobs:
       - name: Build package
         uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
         with:
-          arguments: build -PversionSuffix="-dev${{ github.run_id }}"
+          arguments: build -PversionSuffix=-dev${{ github.run_id }}
       - uses: actions/upload-artifact@v3
         with:
           name: Package
