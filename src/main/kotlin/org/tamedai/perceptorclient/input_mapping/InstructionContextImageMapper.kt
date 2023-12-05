@@ -18,11 +18,17 @@ internal object InstructionContextImageMapper{
     fun mapFromFiles(filePaths: List<String>): List<InstructionContextData> =
         filePaths.map { fp-> mapFromFile(fp) }.toList()
 
+    fun mapFromStreams(inputStreams: List<Pair<InputStream, String>>): List<InstructionContextData> =
+        inputStreams.map { mapFromStream(it.first, it.second) }.toList()
+
     @OptIn(ExperimentalEncodingApi::class)
     fun mapFromStream(fileStream: InputStream, fileType: String): InstructionContextData {
         val bytes = fileStream.readBytes()
         return mapFromBytes(bytes, fileType)
     }
+
+    fun mapFromBytes(inputBytes: List<Pair<ByteArray, String>>): List<InstructionContextData> =
+        inputBytes.map { mapFromBytes(it.first, it.second) }
 
     @OptIn(ExperimentalEncodingApi::class)
     fun mapFromBytes(fileBytes: ByteArray, fileType: String): InstructionContextData {
@@ -36,11 +42,11 @@ internal object InstructionContextImageMapper{
     }
 
 
-    fun isValidFileType(fileExtension: String): Boolean =
-        validFileTypes.any { x->x.equals(fileExtension, ignoreCase = true)}
+    internal fun String.isValidFileType(): Boolean =
+        validFileTypes.any { it.equals(this, ignoreCase = true)}
 
     private fun assertValidFileType(fileExtension: String) {
-        if (!validFileTypes.contains(fileExtension))
+        if (!fileExtension.isValidFileType())
             throw IllegalArgumentException("invalid file type")
     }
 

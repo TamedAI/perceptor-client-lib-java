@@ -1,10 +1,5 @@
 package org.tamedai.perceptorclient
 
-import org.tamedai.perceptorclient.Instruction
-import org.tamedai.perceptorclient.InstructionContextData
-import org.tamedai.perceptorclient.InstructionMethod
-import org.tamedai.perceptorclient.RequestPayload
-import org.tamedai.perceptorclient.TaskMapperService
 import kotlinx.coroutines.coroutineScope
 import org.tamedai.perceptorclient.repository.IPerceptorRepository
 
@@ -16,27 +11,41 @@ internal class ContentSessionContext(
 
     suspend fun processInstructionsRequest(
         request: PerceptorRequest, method: InstructionMethod,
-        instructions: List<Instruction>
-    ): List<InstructionWithResponse> = coroutineScope {
+        instructions: List<Instruction>,
+        classifyEntries: List<ClassificationEntry>
+    ): List<InstructionWithResult> = coroutineScope {
 
         if (instructions.isEmpty())
             return@coroutineScope listOf()
 
-        suspend fun processSingleInstruction(instruction: Instruction): Pair<Instruction, IPerceptorInstructionResult> {
+        if (method == InstructionMethod.Classify && classifyEntries.count() < 2) {
+            throw IllegalArgumentException("number of classes must be > 1")
+        }
+
+        suspend fun processSingleInstruction(instruction: Instruction): InstructionWithResult {
 
             val payload = RequestPayload(
                 request,
                 method,
                 contextData,
-                instruction
+                instruction,
+                classifyEntries
             )
-            val resp = repository.sendInstruction(payload)
-            return Pair(instruction, resp);
+            return when (val resp = repository.sendInstruction(payload)) {
+                is PerceptorSuccessResult -> {
+                    InstructionWithResult.success(instruction.text, resp.answer)
+                }
+
+                is PerceptorError -> {
+                    InstructionWithResult.fromError(instruction.text, resp)
+                }
+
+                else -> InstructionWithResult.fromError(instruction.text, ErrorConstants.unknownError)
+            }
         }
 
-        taskMapper.transformList(instructions) { i ->
-            val res = processSingleInstruction(i)
-            InstructionWithResponse(res.first.text, res.second)
+        taskMapper.transformList(instructions) {
+            processSingleInstruction(it)
         }.toList()
 
 

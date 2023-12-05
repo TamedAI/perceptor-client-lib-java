@@ -1,22 +1,55 @@
 package org.tamedai.perceptorclient
 
-interface IPerceptorInstructionResult{}
 
 
-data class PerceptorError(val errorText: String): IPerceptorInstructionResult
-data class PerceptorSuccessResult(val answer: String): IPerceptorInstructionResult
+typealias InstructionResponse = Map<String, Any>
 
-data class PerceptorRequest(val flavour: String, val detailedParameters: Map<String, String>){
+data class InstructionWithResult(
+    val instruction: String,
+    val isSuccess: Boolean,
+    val response: InstructionResponse?,
+    val errorText: String?
+) {
     companion object Factory {
-        private val defaultRequest: PerceptorRequest = PerceptorRequest("original", emptyMap())
-        fun default() = defaultRequest
+        fun success(instruction: String, response: String) = InstructionWithResult(
+            instruction,
+            true,
+            mapResponseToStructuredContent(response),
+            null
+        )
+
+        private fun error(instruction: String, errorText: String) = InstructionWithResult(
+            instruction,
+            false,
+            null,
+            errorText
+        )
+
+        internal fun fromError(instruction: String, err: PerceptorError) = error(instruction, err.errorText)
     }
 }
 
+data class PerceptorRequest(
+    val flavor: String, val detailedParameters: Map<String, String>,
+    val returnScores: Boolean = false
+) {
+    companion object Factory {
+        private val defaultRequest: PerceptorRequest = PerceptorRequest("original", emptyMap(), false)
+        fun withFlavor(flavor: String, returnScores: Boolean = false) = defaultRequest.copy(
+            flavor = flavor,
+            returnScores = returnScores
+        )
+    }
+}
 
-
-
-data class InstructionWithResponse(val instruction: String, val response: IPerceptorInstructionResult)
-
-data class ClientSettings(var apiKey:String, var url: String = "https://perceptor-api.tamed.ai/1/model/", var waitTimeout: java.time.Duration = java.time.Duration.ofSeconds(30))
+data class DocumentImageResult(
+    /**
+     * Zero based index of the original document's page
+     */
+    val pageIndex: Int,
+    /**
+     * List of results for the page.
+     */
+    val results: List<InstructionWithResult>
+)
 

@@ -1,9 +1,7 @@
 package org.tamedai.perceptorclient
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.*
+import kotlinx.serialization.json.*
 import kotlin.time.Duration
 
 
@@ -14,26 +12,43 @@ private data class RequestBodyModel(
     val context: String,
     val instruction: String,
     val waitTimeout: Long,
-    val params: Map<String, String>
+    val params: Map<String, String>,
+    val classes: List<String>?
 )
+
+
+private fun Boolean.toSerializationValue(): String =
+    when {
+        this -> "true"
+        else -> "false"
+    }
+
+@OptIn(ExperimentalSerializationApi::class)
+private val serializer = Json { explicitNulls = false }
 
 @OptIn(ExperimentalSerializationApi::class)
 internal fun mapToBodyText(payload: RequestPayload, waitTimeout: Duration): String {
+    val detailedParametersWithReturnedScores = payload.parameters.detailedParameters
+        .toMutableMap()
+    detailedParametersWithReturnedScores["returnScores"] = payload.parameters.returnScores.toSerializationValue()
 
     val toSerialize = RequestBodyModel(
-        payload.parameters.flavour,
+        payload.parameters.flavor,
         payload.contextData.contextType,
         payload.contextData.content,
         payload.instruction.text,
         waitTimeout.inWholeSeconds,
-        payload.parameters.detailedParameters
-    );
+        detailedParametersWithReturnedScores,
+        when {
+            payload.method == InstructionMethod.Classify -> payload.classifyEntries.map { it.value }
+            else -> null
+        }
+    )
 
-    return Json.encodeToString(toSerialize)
+    return serializer.encodeToString(toSerialize)
 }
 
 internal fun concatUrl(url1: String, url2: String): String {
-    // TODO - Perhaps we can replace it with some library function
     val firstTrimmed = url1.trimEnd('/')
     val secondTrimmed = url2.trimStart('/')
     if (firstTrimmed.isEmpty()) {
@@ -50,11 +65,10 @@ private const val eventDataLinePrefix: String = "data: "
 
 internal fun parseSseEvents(contentString: String): List<SseEvent> {
     return contentString.lines()
-        .filter { s -> s.isNotEmpty() }
-        .dropWhile { s -> !s.isEventFinishedLine() }
+        .filter { it.isNotEmpty() }
+        .dropWhile { !it.isEventFinishedLine() }
         .selectDataLines()
-        .mapNotNull { s -> s.getSseEventFromLine() }
-        .map { x -> x }
+        .mapNotNull { it.getSseEventFromLine() }
 }
 
 private fun String.isEventFinishedLine(): Boolean {
@@ -65,6 +79,7 @@ private fun String.isEventFinishedLine(): Boolean {
 private fun List<String>.selectDataLines(): List<String> {
     if (this.isEmpty())
         return listOf()
+
     return (0..<this.count() step 2)
         .map { index ->
             if (this[index].isEventFinishedLine() && index < this.count()) {
@@ -80,6 +95,8 @@ private fun List<String>.selectDataLines(): List<String> {
 private fun String.getSseEventFromLine(): SseEvent? {
     if (!this.startsWith(eventDataLinePrefix))
         return null
+
     val data = this.substring(eventDataLinePrefix.length)
     return SseEvent(data)
 }
+
