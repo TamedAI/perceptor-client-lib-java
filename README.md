@@ -191,3 +191,21 @@ _askDocumentImagePaths_<br>
 _askDocumentImageStreams_<br>
 _askDocumentImageBytes_<br>
 
+## Mapping response
+If you use the methods returning the list of _DocumentImageResult_ and need to have the responses grouped by instruction
+rather than page, you can use the provided utility function (_UtilsKt.groupByInstruction_) to map the response:
+
+```java
+        var mapped = org.tamedai.perceptorclient.UtilsKt.groupByInstruction(res);
+        for (InstructionWithPageResult instructionResult : mapped){
+            System.out.printf("instruction: %s", instructionResult.getInstruction());
+            for (var pageRes : instructionResult.getPageResults()){
+                if (pageRes.isSuccess()){
+                    System.out.printf("page: %s, response: %s", pageRes.getPageIndex(), pageRes.getResponse());
+                }else {
+                    System.out.printf("page: %s, error: %s", pageRes.getPageIndex(), pageRes.getErrorText());
+                }
+            }
+        }
+```
+
