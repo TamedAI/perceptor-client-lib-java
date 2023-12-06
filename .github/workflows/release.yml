@@ -1,0 +1,71 @@
+name: release
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  VERSION_NUMBER: ${{ github.ref_name }}
+  RELEASE_ID: ${{ github.ref }}
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Build package
+        uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
+        with:
+          arguments: build -PexplicitVersion=${{ env.VERSION_NUMBER }}
+      - name: Build dokkaJavadoc
+        uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
+        with:
+          arguments: dokkaJavadoc -PexplicitVersion=${{ env.VERSION_NUMBER }}
+      - name: Build dokkaJavadocJar
+        uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
+        with:
+          arguments: dokkaJavadocJar -PexplicitVersion=${{ env.VERSION_NUMBER }}
+
+      - name: release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          draft: false
+          prerelease: false
+          release_name: ${{ env.RELEASE_ID }}
+          tag_name: ${{ env.RELEASE_ID  }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: upload jar artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/libs/perceptor_client_lib-${{ env.VERSION_NUMBER }}.jar
+          asset_name: build/libs/perceptor_client_lib-${{ env.VERSION_NUMBER }}.jar
+          asset_content_type: application/gzip
+
+      - name: upload javadoc artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/libs/perceptor_client_lib-${{ env.VERSION_NUMBER }}-javadoc.jar
+          asset_name: build/libs/perceptor_client_lib-${{ env.VERSION_NUMBER }}-javadoc.jar
+          asset_content_type: application/gzip

@@ -1,13 +1,16 @@
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.gradle.api.tasks.bundling.Jar
 
 plugins {
     kotlin("jvm") version "1.8.20"
     application
     id("org.jetbrains.kotlin.plugin.serialization") version "1.6.21"
     id("org.jetbrains.dokka") version "1.9.0"
+    `maven-publish`
 }
 
-group = "org.tamedai"
+val artifactGroupId = "org.tamedai"
+group = artifactGroupId
 
 val explicitVersion: String? by project
 val versionSuffix: String? by project
@@ -52,7 +55,9 @@ tasks.test {
 tasks.dokkaJavadoc {
     outputDirectory.set(buildDir.resolve("docs/markdown"))
 }
+
 tasks.register<Jar>("dokkaJavadocJar") {
+
     dependsOn(tasks.dokkaJavadoc)
     from(tasks.dokkaJavadoc.flatMap { it.outputDirectory })
     archiveClassifier.set("javadoc")
