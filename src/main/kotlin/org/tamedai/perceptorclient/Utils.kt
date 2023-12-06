@@ -1,5 +1,7 @@
 package org.tamedai.perceptorclient
 
+class Utils
+
 fun groupByInstruction(inputList: List<DocumentImageResult>): List<InstructionWithPageResult> {
     if (inputList.isEmpty()) {
         return listOf()
