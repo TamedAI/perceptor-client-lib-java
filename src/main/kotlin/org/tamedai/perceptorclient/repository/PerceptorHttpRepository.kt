@@ -1,22 +1,14 @@
 package org.tamedai.perceptorclient.repository
 
-
-import org.tamedai.perceptorclient.HttpClientSettings
-import org.tamedai.perceptorclient.InstructionMethod
-import org.tamedai.perceptorclient.RequestPayload
-import org.tamedai.perceptorclient.concatUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.tamedai.perceptorclient.mapToBodyText
-import org.tamedai.perceptorclient.ErrorConstants
-import org.tamedai.perceptorclient.IPerceptorInstructionResult
-import org.tamedai.perceptorclient.PerceptorSuccessResult
-import org.tamedai.perceptorclient.parseSseEvents
+import org.tamedai.perceptorclient.*
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.util.concurrent.ExecutionException
 
 
 internal class PerceptorHttpRepository(private val clientSettings: HttpClientSettings) : IPerceptorRepository {
@@ -34,76 +26,76 @@ internal class PerceptorHttpRepository(private val clientSettings: HttpClientSet
         URI(concatUrl(clientSettings.url, "generate_table"))
     }
 
+    private val urlForMethodClassify: URI by lazy{
+        URI(concatUrl(clientSettings.url, "classify"))
+    }
+
     override suspend fun sendInstruction(payload: RequestPayload): IPerceptorInstructionResult {
         val request = mapToRequestParameters(payload)
 
-        val response = withContext(Dispatchers.IO) {
-            underlyingClient.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get()
+        val response: HttpResponse<String>
+        try {
+            response = withContext(Dispatchers.IO) {
+                underlyingClient.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get()
+            }
+        } catch (e: Exception) {
+            return e.toPerceptorError()
         }
 
-        return mapResponse(response)
+        return response.toPerceptorInstructionResult()
     }
 
-    private fun mapResponse(httpResponse: HttpResponse<String>): IPerceptorInstructionResult =
-        when(httpResponse.statusCode()){
-            HttpURLConnection.HTTP_OK  -> mapSuccessfulResponse(httpResponse)
+    private fun Exception.toPerceptorError(): PerceptorError {
+        val exception = this
+        if (exception is ExecutionException) {
+            return PerceptorError(exception.cause?.message ?: exception.toString(), true)
+        }
+        return PerceptorError(exception.message ?: exception.toString(), true)
+    }
+
+    private fun HttpResponse<String>.toPerceptorInstructionResult(): IPerceptorInstructionResult =
+        when (this.statusCode()) {
+            HttpURLConnection.HTTP_OK -> this.toSuccessfulResponse()
             HttpURLConnection.HTTP_FORBIDDEN -> ErrorConstants.invalidApiKey
+            HttpURLConnection.HTTP_BAD_REQUEST -> this.toBadRequestResponse()
+            HttpURLConnection.HTTP_NOT_FOUND -> ErrorConstants.notFound
 
             else -> ErrorConstants.unknownError
         }
 
-    private fun mapSuccessfulResponse(httpResponse: HttpResponse<String>): IPerceptorInstructionResult {
-        val events = parseSseEvents(httpResponse.body())
-        return if (events.isNotEmpty()){
-            PerceptorSuccessResult(events[0].value)
-        }else{
-            ErrorConstants.unknownError // TODO - Perhaps 'invalid content response' ?
+    private fun HttpResponse<String>.toSuccessfulResponse(): IPerceptorInstructionResult {
+        val events = parseSseEvents(this.body())
+        return when {
+            events.isNotEmpty() -> {
+                PerceptorSuccessResult(events[0].value)
+            }
+            else -> {
+                ErrorConstants.unknownError
+            }
         }
     }
+
+    private fun HttpResponse<String>.toBadRequestResponse(): PerceptorError =
+        PerceptorError(mapBadRequestContentString(this.body()), false)
 
     private fun mapToRequestParameters(payload: RequestPayload): HttpRequest = HttpRequest.newBuilder()
         .uri(getUrlForInstructionMethod(payload.method))
         .header("Accept", "text/event-stream")
         .header("Authorization", authorizationHeader)
-        .POST( HttpRequest.BodyPublishers.ofString(mapToBodyText(payload, clientSettings.waitTimeout)))
+        .POST(HttpRequest.BodyPublishers.ofString(mapToBodyText(payload, clientSettings.waitTimeout)))
         .build()
 
     private fun getUrlForInstructionMethod(method: InstructionMethod): URI =
-        if (method == InstructionMethod.Question) {
-            urlForMethodGenerate
-        } else {
-            urlForMethodTable
+        when (method) {
+            InstructionMethod.Question -> {
+                urlForMethodGenerate
+            }
+            InstructionMethod.Classify ->{
+                urlForMethodClassify
+            }
+            else -> {
+                urlForMethodTable
+            }
         }
-
-
-//    fun sendRequest(): CompletableFuture<HttpResponse<String>>? {
-//
-////        val client = HttpClient()
-////
-////        runBlocking {
-//////            val client = HttpClient(CIO) {
-//////                install(HttpCookies)
-//////            }
-//////            val loginResponse: HttpResponse = client.get("http://0.0.0.0:8080/login")
-//////            repeat(3) {
-//////                val response: HttpResponse = client.get("http://0.0.0.0:8080/user")
-//////                println(response.bodyAsText())
-//////            }
-//////            client.close()
-////
-////        }
-//
-//        val request = HttpRequest.newBuilder()
-//            .uri(URI("https://postman-echo.com/get"))
-//            .GET()
-//            .build()
-//
-//        val client = HttpClient.newHttpClient();
-//        val bodyHandler = null
-//        //HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-//        val res = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-//
-//        return res;
-//    }
 
 }

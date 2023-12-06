@@ -1,12 +1,13 @@
 package unit_tests
 
-import org.tamedai.perceptorclient.input_mapping.InstructionContextImageMapper
+import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.TestInstance
+import org.tamedai.perceptorclient.input_mapping.InstructionContextImageMapper
+import org.tamedai.perceptorclient.input_mapping.InstructionContextImageMapper.isValidFileType
 import java.io.File
 import kotlin.test.Test
-import kotlin.test.assertEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class InstructionContextImageMapperTests{
@@ -14,8 +15,8 @@ class InstructionContextImageMapperTests{
     fun gIVEN_FilePath_WHEN_MappedToInstructionContext_THEN_IsCorrect(){
         val path = "src/test/kotlin/test-files/binary_file.png"
         val result = InstructionContextImageMapper.mapFromFile(path)
-        assertEquals("image", result.contextType)
-        assertEquals("data:image/png;base64,MXg=", result.content)
+        result.contextType shouldBe "image"
+        result.content shouldBe "data:image/png;base64,MXg="
     }
 
     @Test
@@ -23,8 +24,9 @@ class InstructionContextImageMapperTests{
         val path = "src/test/kotlin/test-files/binary_file.png";
         val stream = File(path).inputStream()
         val result = InstructionContextImageMapper.mapFromStream(stream, "png")
-        assertEquals("image", result.contextType)
-        assertEquals("data:image/png;base64,MXg=", result.content)
+
+        result.contextType shouldBe "image"
+        result.content shouldBe "data:image/png;base64,MXg="
     }
 
     @Test
@@ -33,8 +35,9 @@ class InstructionContextImageMapperTests{
         val stream = File(path).inputStream()
         val bytes = stream.readBytes()
         val result = InstructionContextImageMapper.mapFromBytes(bytes, "png")
-        assertEquals("image", result.contextType)
-        assertEquals("data:image/png;base64,MXg=", result.content)
+
+        result.contextType shouldBe "image"
+        result.content shouldBe "data:image/png;base64,MXg="
     }
 
     @TestFactory
@@ -49,7 +52,7 @@ class InstructionContextImageMapperTests{
         "other" to false
     ).map{(input, expected) ->
         DynamicTest.dynamicTest("GIVEN '${input}' WHEN isValidFileType THEN Should Be '$expected'") {
-            assertEquals(expected, InstructionContextImageMapper.isValidFileType(input))
+            input.isValidFileType() shouldBe expected
         }
     }
 }

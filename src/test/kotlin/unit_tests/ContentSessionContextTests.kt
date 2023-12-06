@@ -7,22 +7,23 @@ import kotlinx.coroutines.runBlocking
 import org.tamedai.perceptorclient.*
 import org.tamedai.perceptorclient.repository.IPerceptorRepository
 import kotlin.test.Test
-import kotlin.test.assertTrue
+import io.kotest.matchers.*
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.types.shouldBeTypeOf
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContentSessionContextTests{
     private val repositoryMock: IPerceptorRepository =mockk<IPerceptorRepository>()
-    private val taskLimiter: TaskMapperService = TaskMapperService(5)
-//    init {
-//        val repositoryMock = mockk<IPerceptorRepository>()
-//
-//    }
+    private val taskLimiter: TaskMapperService = TaskMapperService(5, requestDelayFactor = 0)
 
     private suspend fun setupRepositoryMockResult(response: IPerceptorInstructionResult){
         coEvery { repositoryMock.sendInstruction(any()) } returns response
     }
     private fun createContext(instrContext: InstructionContextData): ContentSessionContext =
         ContentSessionContext(repositoryMock, taskLimiter, instrContext)
+
+    private fun InstructionResponse.getResponseText()=this["text"]
 
     @Test
     fun successfulResponseIsMapped(){
@@ -34,14 +35,17 @@ class ContentSessionContextTests{
             val instruction = Instruction("some instruction")
 
             val r = context.processInstructionsRequest(
-                PerceptorRequest.default(),
+                PerceptorRequest.withFlavor("some_flavor"),
                 InstructionMethod.Question,
-                listOf(instruction)
+                listOf(instruction),
+                listOf()
             )
 
-            assertTrue { r.isNotEmpty() }
-            val firstResponse = r[0].response
-            assertTrue { firstResponse is PerceptorSuccessResult && firstResponse.answer == expectedAnswer }
+            r.shouldNotBeEmpty()
+            val firstResponse = r[0]
+
+            firstResponse.isSuccess.shouldBeTrue()
+            firstResponse.response?.getResponseText() shouldBe expectedAnswer
         }
 
     }
@@ -54,22 +58,48 @@ class ContentSessionContextTests{
 
             val context = createContext(InstructionContextData("text", "some text"))
 
-            val instructions = (1..10).map { i-> Instruction("some instruction ${i}") }
+            val instructions = (1..10).map { i-> Instruction("some instruction $i") }
                 .toList()
 
-            val resultList = context.processInstructionsRequest(PerceptorRequest.default(),
+            val resultList = context.processInstructionsRequest(PerceptorRequest.withFlavor("some_flavor"),
                 InstructionMethod.Question,
-                instructions
+                instructions,
+                listOf()
             )
 
-            assertTrue { instructions.count() == resultList.count() }
+            instructions.count() shouldBe resultList.count()
 
             resultList.forEach{
-                val resp = it.response
-                assertTrue { resp is PerceptorSuccessResult && resp.answer == expectedAnswer }
+                it.isSuccess.shouldBeTrue()
+                it.response?.getResponseText() shouldBe expectedAnswer
             }
 
         }
 
     }
+
+     @Test
+     fun when_method_classify_and_number_classes_less_than_2_THEN_exception_is_raised() {
+         val listOfOneClassOnly = listOf("some_class").map { x -> ClassificationEntry(x) }
+
+         runBlocking {
+             setupRepositoryMockResult(PerceptorSuccessResult("not relevant"))
+             val context = createContext(InstructionContextData("text", "some text"))
+
+             val toCall: () -> Unit = {
+                 runBlocking {
+                     context.processInstructionsRequest(
+                         PerceptorRequest.withFlavor("some_flavor"),
+                         InstructionMethod.Classify,
+                         listOf(Instruction("some_instruction")),
+                         listOfOneClassOnly
+                     )
+                 }
+             }
+
+             val exc = toCall.shouldThrow()
+             exc.shouldBeTypeOf<IllegalArgumentException>()
+         }
+
+     }
 }

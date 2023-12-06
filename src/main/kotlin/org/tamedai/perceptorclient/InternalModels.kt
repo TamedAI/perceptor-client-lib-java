@@ -10,17 +10,22 @@ internal data class InstructionContextData(val contextType: String, val content:
 
 internal enum class InstructionMethod{
     Question,
-    Table
+    Table,
+    Classify
 }
 
 internal data class RequestPayload(val parameters: PerceptorRequest,
                           val method: InstructionMethod,
                           val contextData: InstructionContextData,
-                          val instruction: Instruction
+                          val instruction: Instruction,
+                          val classifyEntries: List<ClassificationEntry>
 )
 
 @JvmInline
 internal value class Instruction(val text: String)
+
+@JvmInline
+internal value class ClassificationEntry(val value: String)
 
 internal data class HttpClientSettings(val apiKey: String, val url: String, val waitTimeout: Duration)
 
@@ -28,7 +33,14 @@ internal data class HttpClientSettings(val apiKey: String, val url: String, val 
 @JvmInline
 internal value class SseEvent(val value:String)
 
-object ErrorConstants{ // TODO - perhaps move to another class / file
-    val invalidApiKey = PerceptorError("invalid api key")
-    val unknownError = PerceptorError("unknown error")
+internal interface IPerceptorInstructionResult {}
+
+internal data class PerceptorError(val errorText: String, val isRetryable: Boolean) : IPerceptorInstructionResult
+
+internal data class PerceptorSuccessResult(val answer: String) : IPerceptorInstructionResult
+
+internal object ErrorConstants {
+    val invalidApiKey = PerceptorError("invalid api key", false)
+    val notFound = PerceptorError("not found", false)
+    val unknownError = PerceptorError("unknown error", true)
 }

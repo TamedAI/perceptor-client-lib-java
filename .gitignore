@@ -251,3 +251,4 @@ buildNumber.properties
 # End of https://www.gitignore.io/api/java,macos,maven,kotlin,eclipse,intellij+all,visualstudiocode
 /.gradle/
 /build/
+/src/test/kotlin/integration_tests/config.json

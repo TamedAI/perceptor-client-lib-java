@@ -2,6 +2,7 @@ package integration_tests
 
 import org.tamedai.perceptorclient.*
 
+
 fun main() {
     val client = PerceptorClientFactory.createClient(
         clientSettings
@@ -19,45 +20,26 @@ Meine Vermittlernumer ist die 090.100.
     """;
 
 
-    val fut = client.askText(
+    val result = client.classifyText(
         textToProcess,
         PerceptorRequest.withFlavor("original").copy(returnScores = true),
-        listOf(
-            "Vorname und Nachname des Kunden?",
-            "Ist der Kunde ein VIP? (Ja oder nein)",
-            "was ist die IBAN?",
-            "Wie hoch sind seine Rechnungen?",
-            "Ist er abgesichert?",
-            "wann läuft die Versicherung ab?",
-            "wie wiele Chargen?",
-            "wie ist der Schaden entstanden?",
-            "wie lautet die Anschrift?",
-            "die Vermittlernummer?",
-            "hatte er schon mal Schaden?",
-            "wann will der Kunde Antwort?",
-            "wie soll ich kontaktiert werden?",
-            "ist es dringend?"
+        instruction="was ist das für ein Text?",
+        classes = listOf(
+            "versicherung",
+            "Schadenmeldung",
+            "letter",
+            "brief"
         )
     )
 
-    if (fut.isEmpty()) {
-        println("No response received")
+    print(result.instruction)
+    print(":\t")
+    if (result.isSuccess) {
+        print("response: ")
+        println(result.response)
     } else {
-
-        fut.forEach { res->
-            print(res.instruction)
-            print(":\t")
-
-            when (res.isSuccess) {
-                true -> {
-                    println(res.response)
-                }
-                else -> {
-                    print("error:")
-                    println(res.errorText)
-                }
-            }
-        }
+        print("error:")
+        println(result.errorText)
     }
 
 }

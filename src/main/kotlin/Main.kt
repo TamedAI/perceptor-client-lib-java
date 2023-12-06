@@ -1,15 +1,11 @@
-import kotlinx.coroutines.*
-import org.tamedai.perceptorclient.PerceptorRequest
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 import org.tamedai.perceptorclient.*
 import org.tamedai.perceptorclient.repository.PerceptorHttpRepository
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 suspend fun main(args: Array<String>) {
     println("Hello World!")
 
-    // Try adding program arguments via Run/Debug configuration.
-    // Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
     println("Program arguments: ${args.joinToString()}")
 
     println("trying to call http service");
@@ -36,13 +32,11 @@ suspend fun main(args: Array<String>) {
         PerceptorRequest("default", emptyMap()),
         InstructionMethod.Question,
         InstructionContextData("text", textToProcess),
-        Instruction("Vorname und Nachname des Kunden?")
+        Instruction("Vorname und Nachname des Kunden?"),
+        listOf()
     )
 
-    val xx:IPerceptorInstructionResult
-
     val fut = r.sendInstruction(payload)
-
 
    println(fut);
 }

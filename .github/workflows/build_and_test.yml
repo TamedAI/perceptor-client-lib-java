@@ -2,9 +2,9 @@ name: Java CI with Gradle
 
 on:
   push:
-    branches: [ "*" ]
+    branches:
+      - '**'
   pull_request:
-    branches: [ "main" ]
 
 permissions:
   contents: read
@@ -28,7 +28,16 @@ jobs:
       - name: Build package
         uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
         with:
-          arguments: build -PversionSuffix="-dev${{ vars.GITHUB_RUN_ID }}"
+          arguments: build -PversionSuffix=-dev${{ github.run_id }}
+      - name: Build dokkaJavadoc
+        uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
+        with:
+          arguments: dokkaJavadoc -PversionSuffix=-dev${{ github.run_id }}
+      - name: Build dokkaJavadocJar
+        uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
+        with:
+          arguments: dokkaJavadocJar -PversionSuffix=-dev${{ github.run_id }}
+
       - uses: actions/upload-artifact@v3
         with:
           name: Package
