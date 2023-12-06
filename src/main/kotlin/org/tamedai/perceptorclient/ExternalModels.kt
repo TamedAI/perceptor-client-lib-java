@@ -5,9 +5,21 @@ package org.tamedai.perceptorclient
 typealias InstructionResponse = Map<String, Any>
 
 data class InstructionWithResult(
+    /**
+     * Original instruction
+     */
     val instruction: String,
+    /**
+     * True if success
+     */
     val isSuccess: Boolean,
+    /**
+     * Response text (if successful)
+     */
     val response: InstructionResponse?,
+    /**
+     * Error text (if unsuccessful)
+     */
     val errorText: String?
 ) {
     companion object Factory {
@@ -52,4 +64,51 @@ data class DocumentImageResult(
      */
     val results: List<InstructionWithResult>
 )
+
+data class DocumentPageWithResult(
+    /**
+     * Zero based index of the original document's page
+     */
+    val pageIndex: Int,
+    /**
+     * True if success
+     */
+    val isSuccess: Boolean,
+    /**
+     * Response text (if successful)
+     */
+    val response: InstructionResponse?,
+    /**
+     * Error text (if unsuccessful)
+     */
+    val errorText: String?
+)
+
+data class InstructionWithPageResult(
+    /**
+     * Original instruction
+     */
+    val instruction: String,
+    /**
+     * List of results for the page.
+     */
+    val pageResults: List<DocumentPageWithResult>
+)
+
+/*@dataclass
+
+
+@dataclass
+class InstructionWithPageResult:
+    """
+    Original instruction text
+    """
+    instruction: str
+
+    """
+    Pages and corresponding results
+    """
+    page_results: list[DocumentPageWithResult]
+
+ */
 

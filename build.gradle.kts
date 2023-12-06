@@ -12,7 +12,7 @@ group = "org.tamedai"
 val explicitVersion: String? by project
 val versionSuffix: String? by project
 
-val baseVersion = "0.5.0"
+val baseVersion = "0.5.1"
 
 val effectiveSuffix = when{
     versionSuffix.isNullOrBlank() -> ""
