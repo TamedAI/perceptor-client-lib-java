@@ -24,13 +24,13 @@ suspend fun main(args: Array<String>) {
 
     println("Program arguments: ${args.joinToString()}")
 
-    println("trying to call http service");
+    println("trying to call http service")
 
     val waitTimeout :Duration = 30.seconds // Duration.seconds(30)
     val clientSettings = HttpClientSettings(apiKey = "api.4zAhccIfthXOWkcSzK9bCf",
         url = "https://perceptor-api.tamed.ai/1/model/",
         waitTimeout = waitTimeout)
-    val r = PerceptorHttpRepository(clientSettings);
+    val r = PerceptorHttpRepository(clientSettings)
 
 
     val textToProcess: String = """
@@ -41,7 +41,7 @@ suspend fun main(args: Array<String>) {
     Der Schaden ist 2021 aufgetreten. Die Anschrift des Kunden ist: Berliner Straße 56, 60311 Frankfurt am Main.
 
     Meine Vermittlernumer ist die 090.100.
-    """;
+    """
 
 
     val payload = RequestPayload(
@@ -54,5 +54,5 @@ suspend fun main(args: Array<String>) {
 
     val fut = r.sendInstruction(payload)
 
-   println(fut);
+   println(fut)
 }

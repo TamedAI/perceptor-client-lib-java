@@ -252,3 +252,8 @@ buildNumber.properties
 /.gradle/
 /build/
 /src/test/kotlin/integration_tests/config.json
+
+
+!.idea/compiler.xml
+!.idea/kotlinc.xml
+!.idea/misc.xml
