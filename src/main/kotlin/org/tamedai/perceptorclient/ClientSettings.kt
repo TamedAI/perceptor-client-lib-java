@@ -25,7 +25,7 @@ data class ClientSettings(
     /**
      * Maximal number of parallel requests
      */
-    val maxNumberOfParallelRequests: Int = 10,
+    val maxNumberOfParallelRequests: Int = 3,
 
     /**
      * Maximum number of attempts for failed requests
