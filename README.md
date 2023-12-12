@@ -55,7 +55,7 @@ Use method _PerceptorRequest.Factory.withFlavor_ to create a request object with
 You have to specify the flavor name and binary flag whether the scores are to be calculated or not.
 To specify additional parameters use the constructor of _PerceptorRequest_.
 
-Example code to create a client instance and send a instruction for a text:
+Example code to create a client instance and send an instruction for a text:
 
 ```java
 import org.tamedai.perceptorclient.*;

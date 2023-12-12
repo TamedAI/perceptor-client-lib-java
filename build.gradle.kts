@@ -15,7 +15,7 @@ group = artifactGroupId
 val explicitVersion: String? by project
 val versionSuffix: String? by project
 
-val baseVersion = "0.5.1"
+val baseVersion = "1.0.0"
 
 val effectiveSuffix = when{
     versionSuffix.isNullOrBlank() -> ""
