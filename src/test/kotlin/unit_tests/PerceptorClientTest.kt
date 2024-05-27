@@ -27,6 +27,7 @@ import org.tamedai.perceptorclient.*
 import org.tamedai.perceptorclient.repository.IPerceptorRepository
 import java.io.File
 import java.io.InputStream
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -97,6 +98,37 @@ class PerceptorClientTest {
     private val imageFilePath = "src/test/kotlin/test-files/binary_file.png"
 
     private fun InstructionResponse.getResponseText() = this["text"]
+
+    @Test
+    fun given_CustomParameters_WHEN_AskImage_FromTemporaryFile_THEN_CopiedFileCanBeDeleted() {
+        val tempDir = Files.createTempDirectory("tempDir").toFile()
+        val tempFile = File(tempDir, "binary_file.png")
+        try {
+            // Make a temporary copy of the file
+            Files.copy(File(imageFilePath).toPath(), tempFile.toPath())
+            runBlocking {
+                setupRepositoryMockResult(PerceptorSuccessResult(expectedAnswer))
+
+                val request = PerceptorRequest(
+                    "some flavor",
+                    mapOf("par1" to "val1")
+                )
+                val result = getClient().askImage(tempFile.path, request, listOf("some question"))
+
+                val firstResponse = result[0]
+                firstResponse.isSuccess shouldBe true
+                firstResponse.response?.getResponseText() shouldBe expectedAnswer
+
+                coVerify {
+                    repositoryMock.sendInstruction(withArg {
+                        assertEquals(request, it.parameters)
+                    })
+                }
+            }
+        } finally {
+            tempFile.delete() shouldBe true;
+        }
+    }
 
     @Test
     fun given_CustomParameters_WHEN_AskImage_FromFile_THEN_AnswerIsFound() {

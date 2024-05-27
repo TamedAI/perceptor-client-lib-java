@@ -27,7 +27,9 @@ internal object InstructionContextImageMapper{
 
     fun mapFromFile(filePath: String): InstructionContextData {
         val fileExtension = getFileExtension(filePath)
-        return mapFromStream(File(filePath).inputStream(), fileExtension)
+        File(filePath).inputStream().use {
+            inputStream -> return mapFromStream(inputStream, fileExtension);
+        }
     }
 
     fun mapFromFiles(filePaths: List<String>): List<InstructionContextData> =
