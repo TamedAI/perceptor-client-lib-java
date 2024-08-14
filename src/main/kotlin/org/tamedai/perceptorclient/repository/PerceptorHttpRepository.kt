@@ -51,7 +51,7 @@ internal class PerceptorHttpRepository(private val clientSettings: HttpClientSet
         val response: HttpResponse<String>
         try {
             response = withContext(Dispatchers.IO) {
-                underlyingClient.sendAsync(request, HttpResponse.BodyHandlers.ofString()).get()
+                underlyingClient.send(request, HttpResponse.BodyHandlers.ofString())
             }
         } catch (e: Exception) {
             return e.toPerceptorError()
